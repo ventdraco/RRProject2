@@ -87,12 +87,12 @@ sumpdata <- pdata %>%
 head(sumpdata)
 
 Impact <- arrange(sumpdata, desc(TOTALFATINJ))
-ImpactData <- head(Impact)
+ImpactData <- head(Impact,10)
 
 Economic <- arrange(sumpdata, desc(TOTALDMG))
-EconomicData <- head(Economic)
+EconomicData <- head(Economic,10)
 
-#Across the United States, which types of events (as indicated in the \color{red}{\verb|EVTYPE|}EVTYPE variable) are most harmful with respect to population health?
+#Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
 ImpactData$EVTYPE <- with(ImpactData, reorder(EVTYPE, -TOTALFATINJ))
 ImpactDataS <- ImpactData %>%
         gather(key = "Type", value = "TOTALIMPACT", c("SUMFATALITIES", "SUMINJURIES")) %>%
@@ -100,14 +100,14 @@ ImpactDataS <- ImpactData %>%
 ImpactDataS$Type[ImpactDataS$Type %in% c("SUMFATALITIES")] <- "Fatalities"
 ImpactDataS$Type[ImpactDataS$Type %in% c("SUMINJURIES")] <- "Injuries"
 
-
-ggplot(ImpactDataS, aes(x = EVTYPE, y = TOTALIMPACT, fill = Type)) +
+g1 <- ggplot(ImpactDataS, aes(x = EVTYPE, y = TOTALIMPACT, fill = Type)) +
         geom_bar(stat = "identity", position = "stack") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
         xlab("Event Type") +
         ylab("Total Health Impact") +
-        ggtitle("Events with Most health Impact") +
+        ggtitle("Events with Most Health Impact") +
         theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom")
-
+g1
 
 #Across the United States, which types of events have the greatest economic consequences?
 EconomicData$EVTYPE <- with(EconomicData, reorder(EVTYPE, -TOTALDMG))
@@ -117,9 +117,11 @@ EconomicDataS <- EconomicData %>%
 EconomicDataS$Type[EconomicDataS$Type %in% c("SUMPROPDMG")] <- "Property damage"
 EconomicDataS$Type[EconomicDataS$Type %in% c("SUMCROPDMG")] <- "Crop damage"
 
-ggplot(EconomicDataS, aes(x = EVTYPE, y = TOTALDAMAGE, fill = Type)) +
+g2 <- ggplot(EconomicDataS, aes(x = EVTYPE, y = TOTALDAMAGE, fill = Type)) +
         geom_bar(stat = "identity", position = "stack") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
         xlab("Event Type") +
         ylab("Total Economic Impact") +
         ggtitle("Events with Most Economic Impact") +
         theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom")
+g2
