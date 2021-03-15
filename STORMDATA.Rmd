@@ -1,48 +1,97 @@
+---
+title: "STORMDATA"
+author: "LUIS V"
+date: "3/10/2021"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE , warning = FALSE)
+```
+
+# STORMDATA Project Introduction
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+## DATA Processing
+
+### Loading and preprocessing the data
+```{r readdata}
 library(dplyr)
 library(tidyr)
 library(R.utils)
 library(lubridate)
 library(ggplot2)
+
+setwd("C:/Users/ventd/OneDrive/Escritorio/Coursera/Reproducible Research/RRProject2")
+
 filename <- "Dataset.csv.bz2"
+
 ##checking if the file already exists, if it doesn't it will download it
 if (!file.exists(filename)){
-        fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Fpdata.csv.bz2"
+        fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
         download.file(fileURL, filename, method="curl")
 } 
-
+if (!file.exists("Dataset")) { 
+        xdata <- read.csv(bzfile(filename)) 
+}
 ##Reading data
-bunzip2(filename, "dataset.csv", remove = FALSE, skip = TRUE)
-xdata <- read.csv("dataset.csv")
+xdata <- read.csv(bzfile(filename))
+```
 
-#Calculating data
+### Calculating and analizing data 
+
+```{r calcdata}
 dim(xdata)
 str(xdata)
+```
 
+### Getting relevant variants for this project which contains the following questions:
+
+        1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful                 with respect to population health?
+        2. Across the United States, which types of events have the greatest economic consequences?
+
+The events in the database start in the year 1950 and end in November 2011. In the earlier years of the database there are generally fewer events recorded, most likely due to a lack of good records. More recent years should be considered more complete.
+
+```{r newdata}
 #Creating the table with variables we are going to use
 pdata <- select(xdata, BGN_DATE, STATE, EVTYPE, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP, FATALITIES, INJURIES)
 
-#Checking if there are any NA's in the data
-sum(is.na(pdata))
+```
 
-# Format the BGN_DATE variable as a date
+Checking if there are any NA's in the data
+```{r}
+sum(is.na(pdata))
+```
+
+# Start to Cleaning Data
+
+Format the BGN_DATE variable as a date
+Latest years are the ones with more relevant information, 48 event since 1996
+```{r}
 pdata$BGN_DATE <- as.Date(pdata$BGN_DATE, "%m/%d/%Y")
 pdata$YEAR <- year(pdata$BGN_DATE)
-
-# Latest years are the ones with more relevant information, 48 event since 1996
 pdata <- filter(pdata, YEAR >= 1996)
+```
 
-# Only use events with either health impact or economic damage
+Only use events with either health impact or economic damage
+```{r}
 pdata <- filter(pdata, PROPDMG > 0 | CROPDMG > 0 | FATALITIES > 0 | INJURIES > 0)
+```
 
-
-#Cleaning Data
-
+### Getting and cleaning variables to get the correct information for the economic consequences graphic
+```{r}
 table(pdata$PROPDMGEXP)
 table(pdata$CROPDMGEXP)
-
 pdata$PROPDMGEXP <- toupper(pdata$PROPDMGEXP)
 pdata$CROPDMGEXP <- toupper(pdata$CROPDMGEXP)
+```
 
+### Converting, calculating, and adding new variables needed to get the graphics.
+```{r}
 pdata <- pdata %>% 
         mutate(CROPDMGFACTOR = case_when(CROPDMGEXP == "" ~ 10^0 * CROPDMG,
                                          CROPDMGEXP == "?" ~ 10^0 * CROPDMG,
@@ -70,11 +119,15 @@ pdata <- pdata %>%
                                          PROPDMGEXP == "B" ~ 10^9 * PROPDMG,)) %>%
         mutate(SUMDMG = PROPDMGFACTOR+CROPDMGFACTOR) %>%
         mutate(SUMFATINJ = FATALITIES + INJURIES)
+```
 
-#Check if there is any NA in the new 2 columns
+Check if there is any NA in the new 2 columns
+```{r}
 sum(is.na(pdata))
+```
 
-#Summarizing All data to proceed with getting data
+### Summarizing data after cleaning 
+```{r}
 sumpdata <- pdata %>%
         group_by(EVTYPE) %>%
         summarize(SUMFATALITIES = sum(FATALITIES),
@@ -84,14 +137,27 @@ sumpdata <- pdata %>%
                   SUMCROPDMG = sum(CROPDMGFACTOR),
                   TOTALDMG = sum(SUMDMG))
 head(sumpdata)
+```
+# Results
 
+Harmful Impact with respect population Results
+```{r}
 Impact <- arrange(sumpdata, desc(TOTALFATINJ))
 ImpactData <- head(Impact,10)
 
+ImpactData
+```
+
+Economic Impact Results
+```{r}
 Economic <- arrange(sumpdata, desc(TOTALDMG))
 EconomicData <- head(Economic,10)
 
-#Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+EconomicData
+```
+
+## Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+```{r}
 ImpactData$EVTYPE <- with(ImpactData, reorder(EVTYPE, -TOTALFATINJ))
 ImpactDataS <- ImpactData %>%
         gather(key = "Type", value = "TOTALIMPACT", c("SUMFATALITIES", "SUMINJURIES")) %>%
@@ -107,8 +173,11 @@ g1 <- ggplot(ImpactDataS, aes(x = EVTYPE, y = TOTALIMPACT, fill = Type)) +
         ggtitle("Events with Most Health Impact") +
         theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom")
 g1
+```
 
-#Across the United States, which types of events have the greatest economic consequences?
+
+## Across the United States, which types of events have the greatest economic consequences?
+```{r}
 EconomicData$EVTYPE <- with(EconomicData, reorder(EVTYPE, -TOTALDMG))
 EconomicDataS <- EconomicData %>%
         gather(key = "Type", value = "TOTALDAMAGE", c("SUMPROPDMG", "SUMCROPDMG")) %>%
@@ -124,3 +193,12 @@ g2 <- ggplot(EconomicDataS, aes(x = EVTYPE, y = TOTALDAMAGE, fill = Type)) +
         ggtitle("Events with Most Economic Impact") +
         theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom")
 g2
+
+```
+
+## Conclusion
+
+Per the graphics we can conclude what events are the most dangerous in economic 
+and health, if we can get a better way to anticipate and evacuate people this 
+can help in reduce the danger for people, and getting better prepare for flood 
+in materials can help to reduce the economic impact.
