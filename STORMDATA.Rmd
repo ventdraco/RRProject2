@@ -33,11 +33,9 @@ filename <- "Dataset.csv.bz2"
 ##checking if the file already exists, if it doesn't it will download it
 if (!file.exists(filename)){
         fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
-        download.file(fileURL, filename, method="curl")
+        download.file(fileURL, filename)
 } 
-if (!file.exists("Dataset")) { 
-        xdata <- read.csv(bzfile(filename)) 
-}
+
 ##Reading data
 xdata <- read.csv(bzfile(filename))
 ```

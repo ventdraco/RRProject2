@@ -11,8 +11,7 @@ if (!file.exists(filename)){
 } 
 
 ##Reading data
-bunzip2(filename, "dataset.csv", remove = FALSE, skip = TRUE)
-xdata <- read.csv("dataset.csv")
+xdata <- read.csv(bzfile(filename))
 
 #Calculating data
 dim(xdata)
